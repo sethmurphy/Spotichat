@@ -1,0 +1,22 @@
+{
+    "BundleType": "Application",
+    "BundleIdentifier": "spotichat",
+    "RequiredInterface": 1,
+    "AppIcon": {
+        "36x18": "spotichat.png"
+    },
+    "AppName": {
+        "en": "SpotiChat"
+    },
+    "VendorIdentifier": "com.sethmurphy",
+    "SupportedLanguages": [
+        "en"
+    ],
+    "ApiPermissions" : {
+        "core" : ["private"],
+        "playlist": ["private"]
+    },    
+    "RequiredPermissions": [
+        "http://www.spotichat.com"
+    ]
+}

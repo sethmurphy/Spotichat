@@ -1,0 +1,185 @@
+body { 
+    padding: 0;
+    margin: 0;
+}
+h1 {
+ padding: 0 0 0 .425em;
+ margin: 0;
+ display: inline;
+ float: left;
+ color: #FEFEFE;
+}
+#header { 
+    position: fixed;
+    top: 0;
+    padding: 4px;
+    height: 24px;
+    width: 100%;
+    min-width: 600px;
+    background-color: #7AB800;
+}
+h1 .subtitle {
+ color: #FEFEFE;
+ padding-left: 1em;
+ text-shadow: 0 1px 0 rgba(0, 0, 0, .77); 
+}
+#content {
+    margin-top: 48px;
+}
+#intro {
+    width: 20em;
+    line-height: 1.5em;
+    margin: 4em 1em 1em 1em;
+}
+#login-form {
+    font-size: 14pt;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+}
+#send-form {
+    font-size: 14pt;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+}
+
+#footer {
+    font-size: 14pt;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid black;
+    z-index: 99;
+    background-color: inheret;
+}
+
+#intro {
+    margin: 4em 1em 1em 1em;
+    line-height: 1.5em;
+    text-align: justify;
+    width: 40em;
+}
+#whoareyou, #nickname, #login
+{
+    margin: .5em;
+    padding: .5em;
+}
+
+#whoareyou {
+    width: auto;
+    font-size: 1.5em;
+}
+
+#agree {
+    width: 40em;
+    border: 2px solid;
+    border-radius: 3px;
+    padding: 1em;
+    margin: 1em;
+    line-height: 1.5em;
+    height: 2.5em;
+}
+#login-button {
+    width: auto;
+    float: right;
+    line-height: 1.5em;
+}
+
+#logout-button {
+  float: right;
+  margin-right: 20px;
+}
+#logout-button:link {
+  text-decoration: none;
+}
+#logout-button:hover {
+  text-decoration: underline;
+}
+#logout-button:visited {
+}
+
+#current-username, #message, #send-button {
+    padding: .5%;
+}
+
+#current-username {
+    width: 10%;
+    display: none;
+    float: left;
+    text-align: right;
+}
+#message {
+    width: 78%;
+    margin-left: 11%;
+}
+#send-button {
+    width: 8%;
+}
+#channel {
+    font-size: 1.2em;
+    padding: 0 3em;
+    text-shadow: none; 
+}
+#current-channel {
+    font-weight: bold;
+}
+.errors{
+    margin: 1em;
+    line-height: 1.5em;
+    color: #F00;
+    background-color: #FAA;
+    padding: .25em 1em;
+    border: 2px solid #F00;
+    border-radius: 3px;
+    display: block;
+    text-shadow: none;
+    font-weight: bold;      
+}
+
+#input_box { background: border: 1px #ccc solid; padding: 10px; width: 100%;}
+
+/*------------------------------------------------------------------------------
+ * message formatting
+ *----------------------------------------------------------------------------*/
+
+#message-container {
+    margin: 0;
+    padding: 0 0 6em 0;
+    overflow: hidden;
+}
+
+#message-container li {
+  clear: both;
+  list-style: none;
+}
+#message-container li.system {
+  color: #666666;
+}
+#message-container li.user {
+  color: #333333;
+}
+#message-container li.error {
+  color: #FF0000;
+}
+
+#message-container span {
+  padding: 2px .5%;
+  display: block;
+  float: left;
+}
+#message-container .message-username {
+  font-weight: bold;
+  width: 10%;
+  text-align: right
+}
+#message-container .message-body {
+    width: 77%;
+}
+#message-container .message-timestamp {
+  width: 8%;
+  color: #c7c7c7;
+  text-align: center;
+}

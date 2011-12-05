@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>SpotiChat</title>
+	<link rel=stylesheet href="/css/style.css" />
+	<link rel="stylesheet" href="sp://import/css/eve.css">
+	<script src="/js/jquery.1.7.1.min.js"></script>
+	<script src="/js/jquery.cookie.js"></script>
+	<script src="/js/chatify.js"></script>
+	<script src="/js/mustache.js"></script>
+    <script id="message-template" type="text/plain">
+      <li class="{{msgtype}}">
+        <span class="message-username">{{nickname}}</span>
+        <span class="message-body">{{{message}}}</span>
+        <span class="message-timestamp">{{formattedTime}}</span>
+      </li>
+    </script>
+    </head>
+<body onload="sp = getSpotifyApi(1); spotichat = sp.require('js/spotichat'); spotichat.init(spotichat);">
+	<div id="header">
+		<h1>SpotiChat<span class="subtitle">chat where you listen</span></h1><span id="channel">channel : <span id="current-channel">None</span></span>
+		<a id="logout-button" href="#" style="display: none;">log out</a>
+	</div>
+	<div id="content">
+		<div id="login-container">
+			<p id="intro">
+			SpotiChat keeps the converstation going while you listen. 
+			Choose your own music to listen to and chat with others that are listening to the same thing. 
+			No one listening to the same thing? See what they said about the song while they were there.<br /><br />
+			SpotiChat will retain your chats identified by your Spotify username and they will be available to view by anyone on the Spotify platform.
+			</p>
+			<div id="agree">
+			<label id="whoareyou" for="nickname">Are you down with that?</label>
+			<button class="new-button" id="login-button" type="submit" name="agree" >I Agree, let me join the conversation!</button>
+			</div>
+			<span id="login-errors" class="errors" style="display: none;"></span>
+			<div style="clear: both;"></div>
+		</div>
+		<div id="chat-container" style="display: none;">
+			<ul id="message-container">
+			</ul>
+			<div id="footer">
+				<div id="input-container">
+					<div id="send-form">
+						<label id="current-username" for="message">anonymous:</label>
+						<input type="text" id="message" />
+						<input id="send-button" type="submit" name="send" value="send"
+								disabled="disabled" />
+						<span id="chat-errors" class="errors" style="display: none;"></span>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+</html>
