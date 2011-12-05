@@ -4,26 +4,7 @@ function init(spotichat) {
   if( playerTrackInfo != null ) {
     chatChannel = playerTrackInfo.track.artists[0].name;
   }
-  Chat.buildChatWindow({
-    chatElements: "#chat-container, #logout-button",
-    messageContainer: "#message-container",
-    loginButton: "#login-button",
-    logoutButton: "#logout-button",
-    loginElements: "#login-container",
-    loginErrors: "#login-errors",
-    usernameField: "#nickname",
-    usernameDisplay: "#current-username",
-    sendMessageButton: "#send-button",
-    composeMessageField: "#message",
-    chatErrors: "#chat-errors",
-    messageTemplate: $("#message-template").html(),
-    chatServerURL: "http://www.spotichat.com",
-    chatChannel: chatChannel,
-    chatUsername: getUsername(),
-    spotichat: spotichat,
-    playerTrackInfo: playerTrackInfo
-  });
-
+  putChatRoom(chatChannel, playerTrackInfo);
   sp.trackPlayer.addEventListener("playerStateChanged", function (event) {
     // Only update the page if the track changed
     if (event.data.curtrack == true) {
@@ -63,6 +44,40 @@ function getUsername() {
   }
   return username;
 }
+function putChatRoom(chatChannel, playerTrackInfo) {
+  
+  //if(chatRooms.length > 1) {
+  //
+  //}else if (chatRooms.lenght > 0) {
+  //
+  //}
+  
+  Chat.buildChatWindow({
+    channelID: chatChannel.replace(" ","-").toLowerCase(),
+    channelContainer: "#chat-channel",
+    chatElements: ".chat-container, #logout-button",
+    chatContainer: "chat-container",
+    messageContainer: "message-container",
+    loginButton: "login-button",
+    logoutButton: "#logout-button",
+    loginElements: ".login-container",
+    loginContainer: "login-container",
+    loginErrors: "login-errors",
+    usernameField: "nickname",
+    usernameDisplay: "current-username",
+    sendMessageButton: "send-button",
+    composeMessageField: "message",
+    chatErrors: "chat-errors",
+    messageTemplate: $("#message-template").html(),
+    channelTemplate: $("#channel-template").html(),
+    chatServerURL: "http://www.spotichat.com",
+    chatChannel: chatChannel,
+    chatUsername: getUsername(),
+    spotichat: spotichat,
+    playerTrackInfo: playerTrackInfo
+  });
+}
+
 var m = require("sp://import/scripts/api/models");
 var v = require("sp://import/scripts/api/views");
 var sp = getSpotifyApi(1);

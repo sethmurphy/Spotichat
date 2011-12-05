@@ -1,13 +1,17 @@
 var Chat = (function($) {
   var $loginElements;           // elements shown when the user is logged out
+  var $loginContainer;          // login container
   var $usernameField;           // allows the user to input a desired username
   var $loginButton;             // element to which a login function is bound
   var $loginErrors;             // an element where we will place login errors
 
+  var $channelContainer;        // the container the channel lives in
   var $chatElements;            // elements shown when the user is logged in
+  var $chatContainer;           // the container containing the chat
   var $usernameDisplay;         // shows the user their current username
   var $messageContainer;        // element to hold messages as they arrive
   var messageTemplate;          // a Mustache template for rendering messages
+  var channelTemplate;          // a Mustache template for rendering a channel
   var $composeMessageField;     // allows the user to input a chat message
   var $sendMessageButton;       // element to attach a "send message" function to
   var $logoutButton;            // element to which a logout function is bound
@@ -20,6 +24,7 @@ var Chat = (function($) {
                                 // milliseconds.  Probably should truncate that.
 
   var chatServerURL;              // the chat server base URL
+  var channelID;
   var chatChannel;
   var chatUsername;
   var playerTrackInfo;
@@ -185,12 +190,18 @@ var Chat = (function($) {
   };
 
   // Renders a message object using the Mustache template stored in the
-  // variable messageTemplate.  Formats the timestamp accordingly. */
+  // variable channeTemplate.  Formats the timestamp accordingly. */
   var renderMessage = function(message) {
     var date = new Date();
     date.setTime(message.timestamp);
     message.formattedTime = date.toString().split(' ')[4];
     return Mustache.to_html(messageTemplate, message);
+  };
+
+  // Renders a channel object using the Mustache template stored in the
+  // variable channelTemplate.  Formats the timestamp accordingly. */
+  var renderChannel = function(config) {
+    return Mustache.to_html(config.channelTemplate, config);
   };
 
   // Given an input element and a button element, disables the button if the
@@ -299,19 +310,32 @@ var Chat = (function($) {
   // selectors of to bind event listeners to, as well as a Mustache template to
   // dictate how a message should be formatted.
   var buildChatWindow = function(config) {
+    
+    // create our channel from z-mustache
+    var channel = renderChannel(config);
+    // stick it in the DOM
+    $channelContainer = $(config.channelContainer);    
+    $channelContainer.html(channel);
+    
+    
+    
     $chatElements = $(config.chatElements);
-    $messageContainer = $(config.messageContainer);
-    $loginButton = $(config.loginButton);
+    $chatContainer = $(config.chatContainer);
+    $messageContainer = $( "." + config.messageContainer);
+    $loginButton = $( "." + config.loginButton);
     $logoutButton = $(config.logoutButton);
     $loginElements = $(config.loginElements);
-    $loginErrors = $(config.loginErrors);
-    $sendMessageButton = $(config.sendMessageButton);
-    $composeMessageField = $(config.composeMessageField);
-    $usernameField = $(config.usernameField);
-    $usernameDisplay = $(config.usernameDisplay);
-    $chatErrors = $(config.chatErrors);
+    $loginContainer = $(config.loginContainer);
+    $loginErrors = $( "." + config.loginErrors);
+    $sendMessageButton = $( "." + config.sendMessageButton);
+    $composeMessageField = $( "." + config.composeMessageField);
+    $usernameField = $( "." + config.usernameField);
+    $usernameDisplay = $( "." + config.usernameDisplay);
+    $chatErrors = $( "." + config.chatErrors);
     messageTemplate = config.messageTemplate;
+    channelTemplate = config.channelTemplate;
     chatServerURL = config.chatServerURL;
+    channelID = config.channelID;
     chatChannel = config.chatChannel;
     chatUsername = config.chatUsername;
     spotichat = config.spotichat

@@ -26,25 +26,25 @@ h1 .subtitle {
 #content {
     margin-top: 48px;
 }
-#intro {
+.intro {
     width: 20em;
     line-height: 1.5em;
     margin: 4em 1em 1em 1em;
 }
-#login-form {
+.login-form {
     font-size: 14pt;
     width: 100%;
     padding: 0;
     margin: 0;
 }
-#send-form {
+.send-form {
     font-size: 14pt;
     width: 100%;
     padding: 0;
     margin: 0;
 }
 
-#footer {
+.footer {
     font-size: 14pt;
     position: fixed;
     bottom: 0;
@@ -56,24 +56,24 @@ h1 .subtitle {
     background-color: inheret;
 }
 
-#intro {
+.intro {
     margin: 4em 1em 1em 1em;
     line-height: 1.5em;
     text-align: justify;
     width: 40em;
 }
-#whoareyou, #nickname, #login
+.whoareyou, .nickname, .login
 {
     margin: .5em;
     padding: .5em;
 }
 
-#whoareyou {
+.whoareyou {
     width: auto;
     font-size: 1.5em;
 }
 
-#agree {
+.agree {
     width: 40em;
     border: 2px solid;
     border-radius: 3px;
@@ -82,40 +82,40 @@ h1 .subtitle {
     line-height: 1.5em;
     height: 2.5em;
 }
-#login-button {
+.login-button {
     width: auto;
     float: right;
     line-height: 1.5em;
 }
 
-#logout-button {
+.logout-button {
   float: right;
   margin-right: 20px;
 }
-#logout-button:link {
+.logout-button:link {
   text-decoration: none;
 }
-#logout-button:hover {
+.logout-button:hover {
   text-decoration: underline;
 }
-#logout-button:visited {
+.logout-button:visited {
 }
 
-#current-username, #message, #send-button {
+.current-username, .message, .send-button {
     padding: .5%;
 }
 
-#current-username {
+.current-username {
     width: 10%;
     display: none;
     float: left;
     text-align: right;
 }
-#message {
+.message {
     width: 78%;
     margin-left: 11%;
 }
-#send-button {
+.send-button {
     width: 8%;
 }
 #channel {
@@ -139,46 +139,46 @@ h1 .subtitle {
     font-weight: bold;      
 }
 
-#input_box { background: border: 1px #ccc solid; padding: 10px; width: 100%;}
+.input_box { background: border: 1px #ccc solid; padding: 10px; width: 100%;}
 
 /*------------------------------------------------------------------------------
  * message formatting
  *----------------------------------------------------------------------------*/
 
-#message-container {
+.message-container {
     margin: 0;
     padding: 0 0 6em 0;
     overflow: hidden;
 }
 
-#message-container li {
+.message-container li {
   clear: both;
   list-style: none;
 }
-#message-container li.system {
+.message-container li.system {
   color: #666666;
 }
-#message-container li.user {
+.message-container li.user {
   color: #333333;
 }
-#message-container li.error {
+.message-container li.error {
   color: #FF0000;
 }
 
-#message-container span {
+.message-container span {
   padding: 2px .5%;
   display: block;
   float: left;
 }
-#message-container .message-username {
+.message-container .message-username {
   font-weight: bold;
   width: 10%;
   text-align: right
 }
-#message-container .message-body {
+.message-container .message-body {
     width: 77%;
 }
-#message-container .message-timestamp {
+.message-container .message-timestamp {
   width: 8%;
   color: #c7c7c7;
   text-align: center;
