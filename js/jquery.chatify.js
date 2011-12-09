@@ -1,407 +1,465 @@
-var Chat = (function($) {
-  var $loginElements;           // elements shown when the user is logged out
-  var $loginContainer;          // login container
-  var $usernameField;           // allows the user to input a desired username
-  var $loginButton;             // element to which a login function is bound
-  var $loginErrors;             // an element where we will place login errors
+/*********************************************************
+ *	This plugin creates a chatify channel client
+ *********************************************************/
+(function( $ ){
 
-  var $channelContainer;        // the container the channel lives in
-  var $chatElements;            // elements shown when the user is logged in
-  var $chatContainer;           // the container containing the chat
-  var $usernameDisplay;         // shows the user their current username
-  var $messageContainer;        // element to hold messages as they arrive
-  var messageTemplate;          // a Mustache template for rendering messages
-  var channelTemplate;          // a Mustache template for rendering a channel
-  var $composeMessageField;     // allows the user to input a chat message
-  var $sendMessageButton;       // element to attach a "send message" function to
-  var $logoutButton;            // element to which a logout function is bound
-  var $chatErrors;              // an element where we will place chat errors
+    var methods = {
+        init : function( config ) {
+            // need to encapsulate these in each item
+            // we have no sensible default for most, they need to be defined
+            var settings = {
+                $loginElements:        null,  // elements shown when the user is logged out
+                $loginContainer:       null,  // login container
+                $usernameField:        null,  // allows the user to input a desired username
+                $logoutButton:         null,  // element to which a logout function is bound
+                $loginButton:          null,  // element to which a login function is bound
+                $loginErrors:          null,  // an element where we will place login errors
 
-  var username = '';            // holds the currently logged in username.  If this
-  var loggedIn = false;
-  var lastMessageTimestamp = 0; // Timestamp of the last message received
-                                // Timestamp is represented as unix epoch time, in
-                                // milliseconds.  Probably should truncate that.
+                $channelHeader:        null,  // the header for a channel
+                $channelName:          null,  // the name of the channel
+                $chatElements:         null,  // elements shown when the user is logged in
+                $chatContainer:        null,  // the container containing the chat
+                $usernameDisplay:      null,  // shows the user their current username
+                $messageContainer:     null,  // element to hold messages as they arrive
+                $composeMessageField:  null,  // allows the user to input a chat message
+                $sendMessageButton:    null,  // element to attach a "send message" function to
+                $logoutButton:         null,  // element to which a logout function is bound
+                $chatErrors:           null,  // an element where we will place chat errors
 
-  var chatServerURL;              // the chat server base URL
-  var channelID;
-  var chatChannel;
-  var chatUsername;
-  var playerTrackInfo;
-  var spotichat;
-  // Removes (some) HTML characters to prevent HTML injection.
-  var sanitize = function(text) {
-    return text.replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-  }
+                messageTemplate:       null,  // a Mustache template for rendering messages
+                channelTemplate:       null,  // a Mustache template for rendering a channel
 
-  // Formats the message for display.
-  // Replaces newlines with the <br /> element
-  // replaces tabs with 2-spaces
-  // replaces leading spaces with non-breaking spaces
-  // replaces url's with active links (open a new window)
-  var format = function(text) {
-    return text.replace(/^\t*/, "&nbsp;&nbsp;")
-    .replace(/\r\n/g, "<br/>")
-    .replace(/\n/g, "<br/>")
-    .replace(/\s/g, "&nbsp;")
-    .replace(/(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig, '<a href="$1" target="_blank">$1</a>')
-    .replace(/(\b(spotify:track):[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig, '<a href="$1" target="_blank">$1</a>');
-  }
+                username:              '',    // holds the currently logged in username.  If this
+                loggedIn:              false,
+                lastMessageTimestamp:  0,     // Timestamp of the last message received
+                                              // Timestamp is represented as unix epoch time, in
+                                              // milliseconds.  Probably should truncate that.
+                chatServerURL:         null,  // the chat server base URL
+                channelID:             null,
+                chatChannel:           null,
+                chatUsername:          null,
+                loginMessage:          null,
+                logoutMessage:         null
 
-  var replaceSpotifyURIs = function(text) {
-    spotify_uris = text.match(/(\b(spotify:track):[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig)
-    for( spotify_uri in spotify_uris ) {
+            };
+            
+            return this.each(function() {
+                var $this = $(this), data = $this.data("settings");
+    
+                // If the plugin hasn't been initialized yet
+                if ( ! data ) {
+                    // set a short default timeout
+                    // we set this for most get requests that need to be longer
+                    $.ajaxSetup({ timeout: 3000 } );
+                    settings = methods.buildChatWindow(settings, config, $this);
+                    $this.data("settings",settings);
+               }
+           });
+        },
+
+        /******************************************************
+        ** Destroy us, everything
+        ******************************************************/
+        destroy : function () {
+            var $this = $(this);
+        },
+
+        // Removes (some) HTML characters to prevent HTML injection.
+        sanitize : function(text) {
+            return text.replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+        },
         
-    }
-    return spotify_links.length > 0? true: false;
-  }
+        // Formats the message for display.
+        // Replaces newlines with the <br /> element
+        // replaces tabs with 2-spaces
+        // replaces leading spaces with non-breaking spaces
+        // replaces url's with active links (open a new window)
+        format : function(text) {
+            return text.replace(/^\t*/, "&nbsp;&nbsp;")
+            .replace(/\r\n/g, "<br/>")
+            .replace(/\n/g, "<br/>")
+            .replace(/\s/g, "&nbsp;")
+            .replace(/(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig, '<a href="$1" target="_blank">$1</a>')
+            .replace(/(\b(spotify:track):[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig, '<a href="$1" target="_blank">$1</a>');
+        },
 
-  var formatSpotifyURIlink = function(text, track) {
-    text.replace(link, '<a href="' + track.uri + '" target="_blank">' + track.name + '</a>')
-  }
+        replaceSpotifyURIs : function(text) {
+            spotify_uris = text.match(/(\b(spotify:track):[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig)
+            for( spotify_uri in spotify_uris ) {
+                
+            }
+            return spotify_links.length > 0? true: false;
+        },
 
+        formatSpotifyURIlink : function(text, track) {
+            text.replace(link, '<a href="' + track.uri + '" target="_blank">' + track.name + '</a>')
+        },
 
-  // Scrolls the window to the bottom of the chat dialogue.
-  var scrollToEnd = function() {
-    $(document).scrollTop($(document).height() + 500);
-  }
+        // Scrolls the window to the bottom of the chat dialogue.
+        scrollToEnd : function() {
+            $(document).scrollTop($(document).height() + 500);
+        },
 
-  // A primitve UI state controller. Call with true to show the "logged in" UI;
-  // call with false to show the "logged out" UI.
-  var setChatDisplay = function (enabled) {
-    $loginElements.toggle(!enabled);
-    $chatElements.toggle(enabled);
-  }
+        // A primitve UI state controller. Call with true to show the "logged in" UI;
+        // call with false to show the "logged out" UI.
+        setChatDisplay : function (settings, enabled) {
+            //console.log(settings);
+            settings.$loginElements.toggle(!enabled);
+            settings.$chatElements.toggle(enabled);
+        },
 
-  // Performs an ajax call to log the user in.  Sends an empty POST request
-  // with the username in the request URL.
-  var login = function() {
-    var desiredUsername = chatUsername; // $.trim($usernameField.val());
-    var url = chatServerURL + "/login/" + desiredUsername;
-    var data = "channel=" + chatChannel;
-    if(playerTrackInfo != null) {
-        data = data + "&track_uri=" + playerTrackInfo.track.uri;
-    }
-    console.log(url);
-    $.ajax({
-      type: 'POST',
-      url: url,
-      async: true,
-      cache: false,
-      timeout: 5000,
-      data: data,
-      success: function(data){
-        username = desiredUsername;
-        loggedIn = true;
-        $usernameDisplay.text(username);
-        setChatDisplay(true);
-        $loginErrors.toggle(false);
-        $composeMessageField.focus();
-        $.cookie("spotichatid", username,{ expires: 7, path: '/', domain: 'spotichat', secure: true });
-        $("#current-channel").html(chatChannel);
-        poll();
-      },
-      error: function(XMLHttpRequest, textStatus, errorThrown) {
-        handleError($loginErrors, textStatus, errorThrown);
-      }
-    });
-  };
+        // Performs an ajax call to log the user in.  Sends an empty POST request
+        // with the username in the request URL.
+        login : function(settings) {
+            var desiredUsername = settings.chatUsername; // $.trim($usernameField.val());
+            var url = settings.chatServerURL + "/login/" + settings.channelID + "/" + desiredUsername;
+            var data = "channel=" + settings.chatChannel + "&message=" + settings.loginMessage;
+            //console.log(url);
+            $.ajax({
+              type: 'POST',
+              url: url,
+              async: true,
+              cache: false,
+              timeout: 5000,
+              data: data,
+              success: function(data){
+                settings.username = desiredUsername;
+                settings.loggedIn = true;
+                settings.$usernameDisplay.text(settings.username);
+                methods.setChatDisplay(settings, true);
+                settings.$loginErrors.toggle(false);
+                settings.$composeMessageField.focus();
+                $.cookie("spotichatid", settings.username,{ expires: 7, path: '/', domain: 'spotichat', secure: true });
+                settings.$channelName.html(settings.chatChannel);
+                methods.poll(settings);
+              },
+              error: function(XMLHttpRequest, textStatus, errorThrown) {
+                methods.handleError(settings, settings.$loginErrors, textStatus, errorThrown);
+              }
+            });
+        },
 
-  // Performs an ajax call to log the user out.  Sends an empty DELETE request
-  // with the username in the request URL.
-  var logout = function() {
-    var data = "channel=" + chatChannel;
-    if(playerTrackInfo != null) {
-        data = data + "&track_uri=" + playerTrackInfo.track.uri;
-    }
+        // Performs an ajax call to log the user out.  Sends an empty DELETE request
+        // with the username in the request URL.
+        logout : function(settings) {
+            var data = "channel=" + settings.chatChannel + "&message=" + settings.loginMessage;
 
-    $.ajax({
-      type: 'DELETE',
-      url: chatServerURL + "/login/" + username,
-      async: true,
-      cache: false,
-      timeout: 30000,
-      data: data,
-      success: function(data){
-        // do nothing, we logout in complete
-      },
-      error: function(XMLHttpRequest, textStatus, errorThrown) {       
-        // do nothing, we logout in complete even if we fail
-        handleErrors($loginErrors, textStatus, errorThrown);
-      },
-      complete: function() {
-        logoutClient();
-      }
-    });
-  }
+            $.ajax({
+              type: 'DELETE',
+              url: settings.chatServerURL + "/login/" + settings.channelID + "/" + settings.username,
+              async: true,
+              cache: false,
+              timeout: 30000,
+              data: data,
+              success: function(data){
+                // do nothing, we logout in complete
+              },
+              error: function(XMLHttpRequest, textStatus, errorThrown) {       
+                // do nothing, we logout in complete even if we fail
+                methods.handleErrors(settings, settings.$loginErrors, textStatus, errorThrown);
+              },
+              complete: function() {
+                methods.logoutClient(settings);
+              }
+            });
+        },
 
-  // Performs an ajax call to log the user out.  Sends an empty DELETE request
-  // with the username in the request URL.
-  var switchChannel = function(newChannel) {
-    var currentChannel = chatChannel;
-    chatChannel = newChannel;
-    console.log("switching channels from " + currentChannel + " to " + newChannel);
-    $.ajax({
-      type: 'DELETE',
-      url: chatServerURL + "/login/" + username,
-      async: true,
-      cache: false,
-      timeout: 30000,
-      data: "channel=" + currentChannel,
-      success: function(data){
-        // do nothing, we logout in complete
-      },
-      error: function(XMLHttpRequest, textStatus, errorThrown) {       
-        // do nothing, we logout in complete even if we fail
-        handleErrors($loginErrors, textStatus, errorThrown);
-      },
-      complete: function() {
-        login();
-      }
-    });
-  }
+        // Performs an ajax call to log the user out.  Sends an empty DELETE request
+        // with the username in the request URL.
+        switchChannel : function(settings, newChannel) {
+            var currentChannel = settings.chatChannel;
+            settings.chatChannel = newChannel;
+            //console.log("switching channels from " + currentChannel + " to " + newChannel);
+            $.ajax({
+              type: 'DELETE',
+              url: settings.chatServerURL + "/login/" + settings.username,
+              async: true,
+              cache: false,
+              timeout: 30000,
+              data: "channel=" + currentChannel,
+              success: function(data){
+                // do nothing, we logout in complete
+              },
+              error: function(XMLHttpRequest, textStatus, errorThrown) {       
+                // do nothing, we logout in complete even if we fail
+                methods.handleErrors(settings, settings.$loginErrors, textStatus, errorThrown);
+              },
+              complete: function() {
+                methods.login(settings);
+              }
+            });
+        },
 
+        // performs all the local actions needed to log a user out
+        // this will get called without logout ajax call when a session is expired
+        logoutClient : function(settings) {
+            methods.setChatDisplay(settings, false);    
+            settings.username = '';
+            settings.loggedIn = false;
+            settings.$usernameField.val('');
+            settings.$usernameField.focus();
+        },
 
-  // performs all the local actions needed to log a user out
-  // this will get called without logout ajax call when a session is expired
-  var logoutClient = function() {
-    setChatDisplay(false);    
-    username = '';
-    loggedIn = false;
-    $usernameField.val('');
-    $usernameField.focus();
-  }
+        // Given a list of messages, appends them to the $messageContainer element,
+        // according to the Mustache template defined as messageTemplate.
+        displayMessages : function(settings, messages) {
+            $(messages).each(function(){
+              //console.log(this.message);
+              // make sure we are a relevant message
+              // we don't want to get caught in the middle of context switchinng
+              //if(this.channel == settings.channel) {
+                  this.message = methods.format(methods.sanitize(this.message));
+                  //console.log(this);
+                  settings.$messageContainer.append(methods.renderMessage(settings, this));
+                  if(this.timestamp && this.timestamp > settings.lastMessageTimestamp) {
+                    settings.lastMessageTimestamp = this.timestamp;
+                  }
+              //}
+            });
+            methods.scrollToEnd();
+        },
 
-  // Given a list of messages, appends them to the $messageContainer element,
-  // according to the Mustache template defined as messageTemplate.
-  var displayMessages = function(messages) {
-    $(messages).each(function(){
-      console.log(this.message);
-      this.message = format(sanitize(this.message));
-      console.log(this.message);
-      $messageContainer.append(renderMessage(this));
-      if(this.timestamp && this.timestamp > lastMessageTimestamp) {
-        lastMessageTimestamp = this.timestamp;
-      }
-    });
-    scrollToEnd();
-  };
+        // Renders a message object using the Mustache template stored in the
+        // variable channeTemplate.  Formats the timestamp accordingly. */
+        renderMessage : function(settings, message) {
+            var date = new Date();
+            date.setTime(message.timestamp);
+            message.formattedTime = date.toString().split(' ')[4];
+            return Mustache.to_html(settings.messageTemplate, message);
+        },
 
-  // Renders a message object using the Mustache template stored in the
-  // variable channeTemplate.  Formats the timestamp accordingly. */
-  var renderMessage = function(message) {
-    var date = new Date();
-    date.setTime(message.timestamp);
-    message.formattedTime = date.toString().split(' ')[4];
-    return Mustache.to_html(messageTemplate, message);
-  };
+        // Renders a channel object using the Mustache template stored in the
+        // variable channelTemplate.  Formats the timestamp accordingly. */
+        renderChannel : function(config) {
+            return Mustache.to_html(config.channelTemplate, config);
+        },
 
-  // Renders a channel object using the Mustache template stored in the
-  // variable channelTemplate.  Formats the timestamp accordingly. */
-  var renderChannel = function(config) {
-    return Mustache.to_html(config.channelTemplate, config);
-  };
+        // Given an input element and a button element, disables the button if the
+        // input field is empty.
+        setButtonBehavior : function($inputField, $submitButton){
+            var value = $.trim($inputField.val());
+            if(value){
+              $submitButton.removeAttr("disabled");
+            } else {
+              $submitButton.attr("disabled", "disabled");
+            }
+        },
 
-  // Given an input element and a button element, disables the button if the
-  // input field is empty.
-  var setButtonBehavior = function($inputField, $submitButton){
-    var value = $.trim($inputField.val());
-    if(value){
-      $submitButton.removeAttr("disabled");
-    } else {
-      $submitButton.attr("disabled", "disabled");
-    }
-  };
+        // processes a send message request.  The message is sent as a POST request,
+        // with the message text defined in the POST body.
+        sendMessageClick : function(settings, event) {
+            var $this = $(this);    
+            var message = $.trim(settings.$composeMessageField.val());
+            $this.attr("disabled", "disabled");
+            settings.$composeMessageField.blur();
+            settings.$composeMessageField.attr("disabled", "disabled");
 
-  // processes a send message request.  The message is sent as a POST request,
-  // with the message text defined in the POST body.
-  var sendMessageClick = function(event) {
-    var $this = $(this);    
-    var message = $.trim($composeMessageField.val());
-    $this.attr("disabled", "disabled");
-    $composeMessageField.blur();
-    $composeMessageField.attr("disabled", "disabled");
+            data = 'nickname=' + settings.username + "&channel=" + settings.chatChannel + '&message=' + message;
 
-    data = 'nickname=' + username + "&channel=" + chatChannel + '&message=' + message;
+            $.post(settings.chatServerURL + '/feed', data)
+              .success( function(){
+                settings.$composeMessageField.val("");
+                settings.$chatErrors.toggle(false);
+              })
+              .error( function(XMLHttpRequest, textStatus, errorThrown) {
+                methods.handleError(settings, settings.$chatErrors, textStatus, errorThrown);
+              })
+              .complete( function(){
+                settings.$composeMessageField.removeAttr("disabled");
+                settings.$composeMessageField.focus();
+                $this.removeAttr("disabled");
+              });
 
-    $.post(chatServerURL + '/feed', data)
-      .success( function(){
-        $composeMessageField.val("");
-        $chatErrors.toggle(false);
-      })
-      .error( function(XMLHttpRequest, textStatus, errorThrown) {
-        handleError($chatErrors, textStatus, errorThrown);
-      })
-      .complete( function(){
-        $composeMessageField.removeAttr("disabled");
-        $composeMessageField.focus();
-        $this.removeAttr("disabled");
-      });
-    
-    event.preventDefault();
-    event.stopPropagation();
-    return false;
-  };
+            event.preventDefault();
+            event.stopPropagation();
+            return false;
+        },
 
-  // sends a GET request for new messages.  This function will recurse indefinitely.
-  var poll = function() {
-    if (!loggedIn) {
-      return false;
-    }
-    $.ajax({
-      type: "GET",
-      url: chatServerURL + "/feed",
-      async: true,
-      cache: false,
-      timeout: 1200000,
-      data: 'since_timestamp=' + lastMessageTimestamp + '&nickname=' + username + "&channel=" + chatChannel,
-      success: function(data) {
-        displayMessages(data.messages);
-      },
-      error: function(XMLHttpRequest, textStatus, errorThrown) {
-        handleError($chatErrors, textStatus, errorThrown);
-      },
-      complete: function() {
-        poll();
-      }
-    });
-  };
+        // sends a GET request for new messages.  This function will recurse indefinitely.
+        poll : function(settings) {
+            if (!settings.loggedIn) {
+              return false;
+            }
+            $.ajax({
+              type: "GET",
+              url: settings.chatServerURL + "/feed/" + settings.chatChannel,
+              async: true,
+              cache: false,
+              timeout: 1200000,
+              data: 'since_timestamp=' + settings.lastMessageTimestamp + '&nickname=' + settings.username,
+              success: function(data) {
+                methods.displayMessages(settings, data.messages);
+              },
+              error: function(XMLHttpRequest, textStatus, errorThrown) {
+                methods.handleError(settings, settings.$chatErrors, textStatus, errorThrown);
+              },
+              complete: function() {
+                methods.poll(settings);
+              }
+            });
+        },
 
-  // display our chat errors
-  // if the session has timed out, boot them
-  // if there is a network error, assume the server is down, boot them
-  var handleError = function($errorElement, textStatus, errorThrown) {
-        if(errorThrown === 'Authentication failed') {
-          logoutClient();
-          $loginErrors.text('Authentication failed! Perhaps your session expired.');
-          $loginErrors.toggle(true);
-        } else if (errorThrown === 'Not found' || errorThrown === 'timeout') {
-          logoutClient();
-          $loginErrors.text('Chat server can not be found. Perhaps it is down, or you have no network connection.');
-          $loginErrors.toggle(true);
+        // display our chat errors
+        // if the session has timed out, boot them
+        // if there is a network error, assume the server is down, boot them
+        handleError : function(settings, $errorElement, textStatus, errorThrown) {
+            //console.log(settings);
+            if(errorThrown === 'Authentication failed') {
+              methods.logoutClient(settings);
+              settings.$loginErrors.text('Authentication failed! Perhaps your session expired.');
+              settings.$loginErrors.toggle(true);
+            } else if (errorThrown === 'Not found' || errorThrown === 'timeout') {
+              methods.logoutClient(settings);
+              settings.$loginErrors.text('Chat server can not be found. Perhaps it is down, or you have no network connection.');
+              settings.$loginErrors.toggle(true);
+            } else {
+              if (errorThrown ==='')
+                errorThrown = 'Unable to contact server';
+              $errorElement.text(errorThrown);
+              $errorElement.toggle(true);
+            }
+        },
+
+        switchChatChannel : function(channelName) {
+            var settings = $(this).data('settings'); 
+            settings.chatChannel = channelName;
+            settings.$messageContainer.html('');            
+        },
+
+        setLoginMessage : function(loginMessage) {
+            var settings = $(this).data('settings'); 
+            settings.loginMessage = loginMessage;
+        },
+
+        setLogoutMessage : function(logoutMessage) {
+            var settings = $(this).data('settings'); 
+            settings.logoutMessage = logoutMessage;
+        },
+
+        getLoggedIn : function() {
+            var settings = $(this).data('settings'); 
+            if(settings == null) 
+                return false;
+            return settings.loggedIn;
+        },
+
+        // Our main setup function.  This function performs no dom manipulation directly,
+        // so the layout of your page is preserved after it is called. Accepts a
+        // config object as its only argument, which is used to specify jQuery
+        // selectors of to bind event listeners to, as well as a Mustache template to
+        // dictate how a message should be formatted.
+        buildChatWindow : function(settings, config, $channelContainer) {
+
+            // create our channel from z-mustache
+            var $channel = $(methods.renderChannel(config));
+            // stick it in the DOM
+            $channelContainer.html($channel);
+
+            settings.$chatElements = $channel.find(config.chatElements);
+            settings.$chatContainer = $channel.find(config.chatContainer);
+            settings.$messageContainer = $channel.find( "." + config.messageContainer);
+            settings.$loginButton = $channel.find( "." + config.loginButton);
+            settings.$logoutButton = $channel.find("." + config.logoutButton);
+            settings.$channelHeader = $channel.find(config.channelHeader);
+            settings.$channelName = $channel.find("." + config.channelName);
+            settings.$loginElements = $channel.find(config.loginElements);
+            settings.$loginContainer = $channel.find(config.loginContainer);
+            settings.$loginErrors = $channel.find( "." + config.loginErrors);
+            settings.$sendMessageButton = $channel.find( "." + config.sendMessageButton);
+            settings.$composeMessageField = $channel.find( "." + config.composeMessageField);
+            settings.$usernameField = $channel.find( "." + config.usernameField);
+            settings.$usernameDisplay = $channel.find( "." + config.usernameDisplay);
+            settings.$chatErrors = $channel.find( "." + config.chatErrors);
+            settings.messageTemplate = config.messageTemplate;
+            settings.channelTemplate = config.channelTemplate;
+            settings.chatServerURL = config.chatServerURL;
+            settings.channelID = config.channelID;
+            settings.chatChannel = config.chatChannel;
+            settings.chatUsername = config.chatUsername;
+            settings.loginMessage = config.loginMessage;
+            settings.logoutMessage = config.logoutMessage;
+
+            settings.$loginButton.data('channelContainer',$channelContainer);
+            settings.$loginButton.click(function(event) {
+              var settings = $(this).data('channelContainer').data('settings'); 
+              methods.login(settings);
+              event.preventDefault();
+            });
+
+            settings.$logoutButton.data('channelContainer',$channelContainer);
+            settings.$logoutButton.click(function(event) {
+              var settings = $(this).data('channelContainer').data('settings'); 
+              methods.logout(settings);
+              event.preventDefault();
+            });
+
+            settings.$composeMessageField.data('channelContainer',$channelContainer);
+            settings.$composeMessageField.keyup(function(event) {
+              var settings = $(this).data('channelContainer').data('settings'); 
+              methods.setButtonBehavior($(this), settings.$sendMessageButton);
+            });
+
+            settings.$composeMessageField.data('channelContainer',$channelContainer);
+            settings.$composeMessageField.keydown(function(event) {
+              var settings = $(this).data('channelContainer').data('settings'); 
+              if(event.keyCode == 13 && !event.shiftKey){
+                if($.trim(settings.$composeMessageField.val())){
+                  settings.$sendMessageButton.click();
+                } else {
+                  return false;
+                }
+              }
+            });
+
+            settings.$usernameField.data('channelContainer',$channelContainer);
+            settings.$usernameField.keydown(function(event) {
+              var settings = $(this).data('channelContainer').data('settings'); 
+              if(event.keyCode == 13 ){
+                if($.trim($usernameField.val())){
+                  $loginButton.click();
+                }
+              }
+            });
+
+            $(window).unload(function(event){
+              logout();
+            });
+
+            settings.$usernameField.keyup(function(event) {
+              var settings = $(this).data('channelContainer').data('settings'); 
+              setButtonBehavior($(this), $loginButton);
+            });
+
+            settings.$sendMessageButton.data('channelContainer',$channelContainer);
+            settings.$sendMessageButton.click(function(event) {
+              var settings = $(this).data('channelContainer').data('settings'); 
+              if($.trim(settings.$composeMessageField.val()))
+                methods.sendMessageClick(settings, event);
+            });
+            
+            if(settings.chatUsername!=null && settings.chatUsername!='' && settings.loggedIn) {
+                methods.login(settings);
+            }
+            
+            return settings;
+        }
+    };
+
+    /******************************************************
+    ** Where it all starts, calls the correct method
+    ******************************************************/
+    $.fn.chatify = function( method ) {
+        if ( methods[method] ) {
+            return methods[ method ].apply( this, Array.prototype.slice.call( arguments, 1 ));
+        } else if ( typeof method == 'object' || ! method ) {
+            return methods.init.apply( this, arguments );
         } else {
-          if (errorThrown ==='')
-            errorThrown = 'Unable to contact server';
-          $errorElement.text(errorThrown);
-          $errorElement.toggle(true);
+            $.error( 'Method ' + method + ' does not exist on jQuery.chatify' );
         }
-  }
-
-  var setChatChannel = function(channelName) {
-      chatChannel = channelName;
-  };
-
-  var updateNowPlaying = function(plyrTrackInfo) {
-      playerTrackInfo = plyrTrackInfo;
-      console.log("Chat updateNowPlaying");
-      console.log(playerTrackInfo);
-      console.log(playerTrackInfo.track.artists[0].name);
-      if(playerTrackInfo.track.artists[0].name != chatChannel) {
-        console.log("going to switch channel now ... ");
-        switchChannel(playerTrackInfo.track.artists[0].name);
-      }
-  };
-
-  // Our main setup function.  This function performs no dom manipulation directly,
-  // so the layout of your page is preserved after it is called. Accepts a
-  // config object as its only argument, which is used to specify jQuery
-  // selectors of to bind event listeners to, as well as a Mustache template to
-  // dictate how a message should be formatted.
-  var buildChatWindow = function(config) {
-    
-    // create our channel from z-mustache
-    var channel = renderChannel(config);
-    // stick it in the DOM
-    $channelContainer = $(config.channelContainer);    
-    $channelContainer.html(channel);
-    
-    
-    
-    $chatElements = $(config.chatElements);
-    $chatContainer = $(config.chatContainer);
-    $messageContainer = $( "." + config.messageContainer);
-    $loginButton = $( "." + config.loginButton);
-    $logoutButton = $(config.logoutButton);
-    $loginElements = $(config.loginElements);
-    $loginContainer = $(config.loginContainer);
-    $loginErrors = $( "." + config.loginErrors);
-    $sendMessageButton = $( "." + config.sendMessageButton);
-    $composeMessageField = $( "." + config.composeMessageField);
-    $usernameField = $( "." + config.usernameField);
-    $usernameDisplay = $( "." + config.usernameDisplay);
-    $chatErrors = $( "." + config.chatErrors);
-    messageTemplate = config.messageTemplate;
-    channelTemplate = config.channelTemplate;
-    chatServerURL = config.chatServerURL;
-    channelID = config.channelID;
-    chatChannel = config.chatChannel;
-    chatUsername = config.chatUsername;
-    spotichat = config.spotichat
-    playerTrackInfo = config.playerTrackInfo
-    $loginButton.click(function(event) {
-      login();
-      event.preventDefault();
-    });
-
-    $logoutButton.click(function(event) {
-      logout();
-      event.preventDefault();
-    });
-
-    $composeMessageField.keyup(function(event) {
-      setButtonBehavior($(this), $sendMessageButton);
-    });
-
-    $composeMessageField.keydown(function(event) {
-      if(event.keyCode == 13 && !event.shiftKey){
-        if($.trim($composeMessageField.val())){
-          $sendMessageButton.click();
-        } else {
-          return false;
-        }
-      }
-    });
-
-    $usernameField.keydown(function(event) {
-      if(event.keyCode == 13 ){
-        if($.trim($usernameField.val())){
-          $loginButton.click();
-        }
-      }
-    });
-
-
-    $(window).unload(function(event){
-      logout();
-    });
-
-    $usernameField.keyup(function(event) {
-      setButtonBehavior($(this), $loginButton);
-    });
-
-    $sendMessageButton.click(function(event) {
-      if($.trim($composeMessageField.val()))
-        sendMessageClick(event);
-    });
-  };
-
-  // set a short default timeout
-  // we set this for most get requests that need to be longer
-  $.ajaxSetup({ timeout: 3000 } );
-
-  return {
-    buildChatWindow: buildChatWindow,
-    login: login,
-    logout: logout,
-    setChatChannel: setChatChannel,
-    updateNowPlaying: updateNowPlaying
-  };
-})($);
-
-
-
+    };
+})( jQuery );
 
 $(document).ready(function() {
   $("#nickname").focus();

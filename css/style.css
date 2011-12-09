@@ -9,6 +9,10 @@ h1 {
  float: left;
  color: #FEFEFE;
 }
+.chatify-channel {
+    width: 50%;
+    float: left;
+}
 #header { 
     position: fixed;
     top: 0;

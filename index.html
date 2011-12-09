@@ -8,6 +8,7 @@
     <script src="/js/jquery.1.7.1.min.js"></script>
     <script src="/js/jquery.cookie.js"></script>
     <script src="/js/jquery.chatify.js"></script>
+    <script src="/js/jquery.chatitroller.js"></script>
     <script src="/js/mustache.js"></script>
     <!-- chat item template -->
     <script id="message-template" type="text/plain">
@@ -20,6 +21,10 @@
     <!-- chat channel template -->
     <script id="channel-template" type="text/plain">
     <div id="{{channelID}}">
+        <div class="{{channelHeader}}">
+            <span class="channel">channel : <span class="{{channelName}}">None</span></span>
+            <a class="{{logoutButton}}" href="#" style="display: none;">log out</a>
+        </div>
         <div class="{{loginContainer}}">
             <p class="intro">
             SpotiChat keeps the converstation going while you listen. 
@@ -54,11 +59,12 @@
 </head>
 <body onload="sp = getSpotifyApi(1); spotichat = sp.require('js/spotichat'); spotichat.init(spotichat);">
     <div id="header">
-        <h1>SpotiChat<span class="subtitle">chat where you listen</span></h1><span id="channel">channel : <span id="current-channel">None</span></span>
-        <a id="logout-button" href="#" style="display: none;">log out</a>
+        <h1>SpotiChat<span class="subtitle">chat where you listen</span></h1>
     </div>
     <div id="content">
-    <div id="chat-channel"></div>
+    <div class="chatify-channels">
+        <div class="chatify-channel"></div>
+    </div>
     </div>
 </body>
 </html>
