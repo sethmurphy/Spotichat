@@ -12,10 +12,6 @@
     "SupportedLanguages": [
         "en"
     ],
-    "ApiPermissions" : {
-        "core" : ["private"],
-        "playlist": ["private"]
-    },    
     "RequiredPermissions": [
         "http://www.spotichat.com"
     ]
