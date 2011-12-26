@@ -16,42 +16,59 @@
         <span class="message-username">{{nickname}}</span>
         <span class="message-body">{{{message}}}</span>
         <span class="message-timestamp">{{formattedTime}}</span>
+        <span class="clear"></span>
       </li>
     </script>
     <!-- chat channel template -->
     <script id="channel-template" type="text/plain">
     <div id="{{channelID}}">
-        <div class="{{channelHeader}}">
-            <span class="channel">channel : <span class="{{channelName}}">None</span></span>
-            <a class="{{logoutButton}}" href="#" style="display: none;">log out</a>
-        </div>
+        <h2 class="{{channelHeader}}">
+            <span class="channel {{channelName}}"></span>
+            <a class="{{logoutButton}}" href="#" style="display: none;">{{logoutButtonText}}</a>
+        </h2>
         <div class="{{loginContainer}}">
             <p class="intro">
             SpotiChat keeps the converstation going while you listen. 
             Choose your own music to listen to and chat with others that are listening to the same thing. 
-            No one listening to the same thing? See what they said about the song while they were there.<br /><br />
-            SpotiChat will retain your chats identified by your Spotify username and they will be available to view by anyone on the Spotify platform.
+            No one listening to the same thing? See what they said about the song while they were there.
             </p>
             <div class="agree">
-            <label class="whoareyou" for="nickname">Are you down with that?</label>
-            <button class="new-button {{loginButton}}" type="submit" name="agree" >I Agree, let me join the conversation!</button>
+                <form>
+                    <table>
+                        <tr>
+                            <td valign="top">
+                                <input type="checkbox" name="{{agreeCheckbox}}" value="agree" id="{{agreeCheckbox}}-{{channelID}}" class="{{agreeCheckbox}}"/>
+                            </td>
+                            <td valign="top">
+                                <label class="label-{{agreeCheckbox}}" id="label-{{agreeCheckbox}}-{{channelID}}" for="{{agreeCheckbox}}">SpotiChat will retain your chats identified by your Spotify username and they will be available to view by anyone on the Spotify platform.</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                            </td>
+                            <td>
+                                <button type="submit" class="login {{oAuthProvider}} {{loginButton}}" id="{{loginButton}}-{{channelID}}" ></button>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
             </div>
             <span class="errors {{loginErrors}}" style="display: none;"></span>
             <div style="clear: both;"></div>
         </div>
         <div class="{{chatContainer}}" style="display: none;">
-            <ul class="{{messageContainer}}">
-            </ul>
-            <div class="footer">
-                <div class="{{inputContainer}}">
-                    <div class="send-form">
-                        <label class="{{usernameDisplay}}" for="{{composeMessageField}}-{{chatChannel}}">anonymous:</label>
-                        <input type="text" id="{{composeMessageField}}-{{chatChannel}}" class="{{composeMessageField}}"/>
-                        <input class="{{sendMessageButton}}" type="submit" name="send" value="send"
-                                disabled="disabled" />
-                        <span class="errors {{chatErrors}}" style="display: none;"></span>
-                    </div>
+            <div class="{{inputContainer}}">
+                <div class="send-form">
+                    <label class="{{usernameDisplay}}" for="{{composeMessageField}}-{{chatChannel}}">anonymous:</label>
+                    <input type="text" id="{{composeMessageField}}-{{channelID}}" class="{{composeMessageField}}"/>
+                    <input class="{{sendMessageButton}}" type="submit" name="send" value="send"
+                            disabled="disabled" />
+                    <span class="errors {{chatErrors}}" style="display: none;"></span>
                 </div>
+            </div>
+            <ul class="{{messageContainer}}"></ul>
+            <div class="footer">
+                FOOTER
             </div>
         </div>
     </div>
@@ -62,9 +79,7 @@
         <h1>SpotiChat<span class="subtitle">chat where you listen</span></h1>
     </div>
     <div id="content">
-    <div class="chatify-channels">
-        <div class="chatify-channel"></div>
-    </div>
+        <div class="chatify-channels"></div>
     </div>
 </body>
 </html>

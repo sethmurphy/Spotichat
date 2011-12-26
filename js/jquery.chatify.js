@@ -2,24 +2,27 @@
  *	This plugin creates a chatify channel client
  *********************************************************/
 (function( $ ){
-
+    var beforeSend = function( xhr ) { xhr.withCredentials = true; };
+    
     var methods = {
         init : function( config ) {
             // need to encapsulate these in each item
             // we have no sensible default for most, they need to be defined
-            var settings = {
+            settings = {
                 $loginElements:        null,  // elements shown when the user is logged out
                 $loginContainer:       null,  // login container
                 $usernameField:        null,  // allows the user to input a desired username
                 $logoutButton:         null,  // element to which a logout function is bound
                 $loginButton:          null,  // element to which a login function is bound
                 $loginErrors:          null,  // an element where we will place login errors
+                $agreeCheckbox:        null,  // the checkbox to agree to terms
 
                 $channelHeader:        null,  // the header for a channel
                 $channelName:          null,  // the name of the channel
                 $chatElements:         null,  // elements shown when the user is logged in
                 $chatContainer:        null,  // the container containing the chat
                 $usernameDisplay:      null,  // shows the user their current username
+                $inputContainer:       null,  // element to hold all input elements for composing a new message
                 $messageContainer:     null,  // element to hold messages as they arrive
                 $composeMessageField:  null,  // allows the user to input a chat message
                 $sendMessageButton:    null,  // element to attach a "send message" function to
@@ -31,28 +34,38 @@
 
                 username:              '',    // holds the currently logged in username.  If this
                 loggedIn:              false,
+                oAuthProvider:          null,  // The oAuth provider for authentication, only 'facebook' supported now
                 lastMessageTimestamp:  0,     // Timestamp of the last message received
                                               // Timestamp is represented as unix epoch time, in
                                               // milliseconds.  Probably should truncate that.
-                chatServerURL:         null,  // the chat server base URL
+                chatServerUrl:         null,  // the chat server base URL
                 channelID:             null,
                 chatChannel:           null,
                 chatUsername:          null,
                 loginMessage:          null,
-                logoutMessage:         null
-
+                logoutMessage:         null,
+                logoutButtonText:      null,  // the text in the logout link for a channel
+                logoutCallback:        null,
+                chatitroller:          null,
+                formatMessages:        true,
+                linkifyMessages:       true,
+                sp:                    null
             };
+                // will set our basics, but will not convert classnames to jquery object
+				if ( config ) {
+					$.extend( settings, config );
+				}            
             
-            return this.each(function() {
-                var $this = $(this), data = $this.data("settings");
+            return this.each( function() {
+                var $this = $( this ), data = $this.data( "settings" );
     
                 // If the plugin hasn't been initialized yet
                 if ( ! data ) {
                     // set a short default timeout
                     // we set this for most get requests that need to be longer
-                    $.ajaxSetup({ timeout: 3000 } );
-                    settings = methods.buildChatWindow(settings, config, $this);
-                    $this.data("settings",settings);
+                    $.ajaxSetup( { timeout: 3000 , beforeSend: beforeSend } );
+                    settings = methods.buildChatWindow( settings, config, $this );
+                    $this.data( "settings", settings );
                }
            });
         },
@@ -61,14 +74,14 @@
         ** Destroy us, everything
         ******************************************************/
         destroy : function () {
-            var $this = $(this);
+            var $this = $( this );
         },
 
         // Removes (some) HTML characters to prevent HTML injection.
-        sanitize : function(text) {
-            return text.replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;");
+        sanitize : function( text ) {
+            return text.replace( /&/g, "&amp;" )
+            .replace( /</g, "&lt;" )
+            .replace( />/g, "&gt;" );
         },
         
         // Formats the message for display.
@@ -76,46 +89,163 @@
         // replaces tabs with 2-spaces
         // replaces leading spaces with non-breaking spaces
         // replaces url's with active links (open a new window)
-        format : function(text) {
-            return text.replace(/^\t*/, "&nbsp;&nbsp;")
-            .replace(/\r\n/g, "<br/>")
-            .replace(/\n/g, "<br/>")
-            .replace(/\s/g, "&nbsp;")
-            .replace(/(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig, '<a href="$1" target="_blank">$1</a>')
-            .replace(/(\b(spotify:track):[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig, '<a href="$1" target="_blank">$1</a>');
+        format : function( text ) {
+            return text.replace( /^\t*/, "&nbsp;&nbsp;" )
+            .replace( /\r\n/g, "<br/>" )
+            .replace( /\n/g, "<br/>" )
+            .replace( /\s/g, "&nbsp;" );
         },
 
-        replaceSpotifyURIs : function(text) {
-            spotify_uris = text.match(/(\b(spotify:track):[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig)
-            for( spotify_uri in spotify_uris ) {
-                
+        // convets urls and internal spotify links to hrefs.
+        // replaces url's with active links (open a new window)
+        linkify : function( text ) {
+            return text.replace( /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig, '<a href="$1" target="_blank">$1</a>' )
+            .replace( /(\b(spotify:track):[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig, '<a href="$1" class="spotify-link $1" target="_blank">$1</a>' );
+        },
+
+        replaceSpotifyURIs : function( settings ) {
+            //console.log( "replaceSpotifyURIs" );
+            var $this = $( this );
+            //console.log( $this );
+            var spotify_links = settings.$messageContainer.find( ".spotify-link" );
+            //console.log( spotify_links );
+            var links = [];
+            for( var i = 0; i < spotify_links.length; i++ ) {
+                links.push( $( spotify_links[i] ).attr( 'href' ) );
             }
-            return spotify_links.length > 0? true: false;
+            //console.log( links );
+            //console.log( settings.sp.core.getMetadata );
+            settings.sp.core.getMetadata( links, {
+                onSuccess: function( result ) {
+                    // we are an array of results
+                    //console.log( result );
+                    //console.log( settings.$messageContainer );
+                    
+                    var track = null;
+                    var $matches = [];
+                    for( var i = 0; i < result.length; i++ ) {
+                        track = result[ i ];
+                        $matches = settings.$messageContainer.find( $( "[href$='" + track.uri + "']" ) )
+                        //console.log( $matches );
+                        $matches.html( track.name );
+                        //console.log( track.name );
+                    }
+                },
+                onError: function( error ) {
+                    console.log( error );
+                },
+                onComplete: function() {
+                    //console.log( "replaceSpotifyURIs complete!" );
+                },
+            });
+
         },
 
         formatSpotifyURIlink : function(text, track) {
-            text.replace(link, '<a href="' + track.uri + '" target="_blank">' + track.name + '</a>')
+            text.replace( link, '<a href="' + track.uri + '" target="_blank">' + track.name + '</a>' )
         },
 
         // Scrolls the window to the bottom of the chat dialogue.
         scrollToEnd : function() {
-            $(document).scrollTop($(document).height() + 500);
+            $( document ).scrollTop( $( document ).height() + 500 );
         },
 
         // A primitve UI state controller. Call with true to show the "logged in" UI;
         // call with false to show the "logged out" UI.
-        setChatDisplay : function (settings, enabled) {
-            //console.log(settings);
-            settings.$loginElements.toggle(!enabled);
-            settings.$chatElements.toggle(enabled);
+        setChatDisplay : function ( settings, enabled ) {
+            //console.log( settings );
+            settings.$loginElements.toggle( !enabled );
+            settings.$chatElements.toggle( enabled );
+        },
+
+        // Performs an ajax call to log the user in.
+        // with the username in the request URL.
+        // we basically start an authenticated session here
+        // on success, we request to "login" to a room
+        login : function( settings ) {
+            // first see if we have our cookies, which mean we are already logged in
+            var username = methods.getCredentials();
+            if( username != null ) {
+                methods.channelLogin( settings );
+            } else {
+                var desiredUsername = settings.chatUsername; // $.trim($usernameField.val());
+                var url = settings.chatServerUrl + "/api/login/" + desiredUsername;
+                var data = "username=" + username + "&message=" + settings.loginMessage;
+                //console.log(url);
+                $.ajax({
+                  type: 'POST',
+                  url: url,
+                  async: true,
+                  cache: false,
+                  timeout: 5000,
+                  data: data,
+                  success: function( data ) {
+                    methods.setCredentials( data.username, data.nickname );
+                    methods.channelLogin( settings );
+                  },
+                  error: function( XMLHttpRequest, textStatus, errorThrown ) {
+                    methods.clearCredentials()
+                    methods.handleError( settings, settings.$loginErrors, textStatus, errorThrown );
+                  }
+                });
+            }
+        },
+        // Performs an ajax call to log the user in.
+        // with the username in the request URL.
+        // we basically start an authenticated session here
+        // on success, we request to "login" to a room
+        setLoginMessages : function( settings ) {
+            // first see if we have our cookies, which mean we are already logged in
+            var playerTrackInfo = settings.sp.trackPlayer.getNowPlayingTrack();
+            var nickname = methods.getNickname();
+            settings.loginMessage = nickname + " has entered the room.";
+            if(playerTrackInfo != null) {
+              var songuri = playerTrackInfo.track.uri;
+              settings.loginMessage = nickname + " has entered the room listening to " + songuri + ".";
+            }
+            settings.logoutMessage = nickname + " has left the room.";
+        },
+
+
+        // Performs an ajax call to log the user in.
+        // with the username in the request URL.
+        // we basically start an authenticated session here
+        // on success, we request to "login" to a room
+        oAuthLogin : function( settings ) {
+            // first see if we have our cookies, which mean we are already logged in
+            var username = methods.getCredentials();
+            if( username != null) {
+                methods.channelLogin( settings );
+            } else {
+                // oepn the oAuthDialog from Spotify API
+                var url = settings.chatServerUrl + "/oauth/" + settings.oAuthProvider + "/login/" + settings.chatUsername;
+                var callbackUrl = settings.chatServerUrl + "/oauth/" + settings.oAuthProvider + "/loggedin"; // url that closes the window
+
+                //console.log(url);
+                var oAuthCallback = function( settings ){
+                        return function() {
+                            console.log( "settings" );
+                            console.log( settings );
+                            methods.login( settings );
+                        };
+                    };
+
+                settings.sp.core.showAuthDialog( url, callbackUrl, { onSuccess: oAuthCallback( settings ) } )
+
+            }
         },
 
         // Performs an ajax call to log the user in.  Sends an empty POST request
         // with the username in the request URL.
-        login : function(settings) {
+        channelLogin : function( settings ) {
             var desiredUsername = settings.chatUsername; // $.trim($usernameField.val());
-            var url = settings.chatServerURL + "/login/" + settings.channelID + "/" + desiredUsername;
-            var data = "channel=" + settings.chatChannel + "&message=" + settings.loginMessage;
+            var url = settings.chatServerUrl + "/api/login/" + settings.channelID + "/" + desiredUsername;
+            var username = methods.getCredentials();
+            var data = "username=" + username + "&channel_name=" + settings.chatChannel + "&message=" + settings.loginMessage;
+            var username = methods.getCredentials();
+
+            methods.setLoginMessages( settings )
+
             //console.log(url);
             $.ajax({
               type: 'POST',
@@ -131,24 +261,27 @@
                 methods.setChatDisplay(settings, true);
                 settings.$loginErrors.toggle(false);
                 settings.$composeMessageField.focus();
-                $.cookie("spotichatid", settings.username,{ expires: 7, path: '/', domain: 'spotichat', secure: true });
+                //$.cookie("spotichatid", settings.username,{ expires: 7, path: '/', domain: 'spotichat', secure: true });
                 settings.$channelName.html(settings.chatChannel);
-                methods.poll(settings);
-              },
+                methods.poll( settings );
+              },              
               error: function(XMLHttpRequest, textStatus, errorThrown) {
                 methods.handleError(settings, settings.$loginErrors, textStatus, errorThrown);
               }
             });
         },
 
+
         // Performs an ajax call to log the user out.  Sends an empty DELETE request
         // with the username in the request URL.
-        logout : function(settings) {
-            var data = "channel=" + settings.chatChannel + "&message=" + settings.loginMessage;
+        logout : function( settings ) {
+            var username = methods.getCredentials();
+            var This = this;
+            var data = "username=" + username + "&channel_id=" + settings.chatChannel + "&message=" + settings.loginMessage;
 
             $.ajax({
               type: 'DELETE',
-              url: settings.chatServerURL + "/login/" + settings.channelID + "/" + settings.username,
+              url: settings.chatServerUrl + "/api/login/" + settings.channelID + "/" + settings.username,
               async: true,
               cache: false,
               timeout: 30000,
@@ -158,43 +291,69 @@
               },
               error: function(XMLHttpRequest, textStatus, errorThrown) {       
                 // do nothing, we logout in complete even if we fail
-                methods.handleErrors(settings, settings.$loginErrors, textStatus, errorThrown);
+                methods.handleError(settings, settings.$loginErrors, textStatus, errorThrown);
               },
               complete: function() {
-                methods.logoutClient(settings);
+                methods.logoutClient( settings );
+                if(settings.logoutCallback != null) {
+                    if(settings.chatitroller != null) {
+                        This = settings.chatitroller;
+                    }
+                    settings.logoutCallback.apply( This, [settings]);
+                }
               }
             });
         },
 
         // Performs an ajax call to log the user out.  Sends an empty DELETE request
         // with the username in the request URL.
-        switchChannel : function(settings, newChannel) {
+        switchChannel : function(settings, new_settings) {
+            //console.log("switchChannel");
+            //console.log( settings );
+            //console.log(new_settings);
             var currentChannel = settings.chatChannel;
+            var currentChannelID = settings.channelID;
+            var username = methods.getCredentials();
+            var newChannel = new_settings.channelID;
+            var data = "username=" + username + "&channel_id=" + currentChannelID;
             settings.chatChannel = newChannel;
             //console.log("switching channels from " + currentChannel + " to " + newChannel);
             $.ajax({
               type: 'DELETE',
-              url: settings.chatServerURL + "/login/" + settings.username,
+              url: settings.chatServerUrl + "/api/login/" + settings.username,
               async: true,
               cache: false,
               timeout: 30000,
-              data: "channel=" + currentChannel,
+              data:  data,
               success: function(data){
                 // do nothing, we logout in complete
               },
               error: function(XMLHttpRequest, textStatus, errorThrown) {       
                 // do nothing, we logout in complete even if we fail
-                methods.handleErrors(settings, settings.$loginErrors, textStatus, errorThrown);
+                methods.handleError(settings, settings.$loginErrors, textStatus, errorThrown);
               },
               complete: function() {
-                methods.login(settings);
+
+                if ( new_settings ) {
+                    $.extend( settings, new_settings );
+                }
+                //methods.initConfig(settings, new_settings);
+                
+                //console.log("complete");
+                //console.log(settings.$messageContainer);
+                settings.$messageContainer.empty();
+                settings.lastMessageTimestamp = 0;
+
+                methods.setLoginMessages( settings )
+
+                methods.channelLogin( settings );
               }
             });
         },
 
         // performs all the local actions needed to log a user out
         // this will get called without logout ajax call when a session is expired
-        logoutClient : function(settings) {
+        logoutClient : function( settings ) {
             methods.setChatDisplay(settings, false);    
             settings.username = '';
             settings.loggedIn = false;
@@ -210,15 +369,27 @@
               // make sure we are a relevant message
               // we don't want to get caught in the middle of context switchinng
               //if(this.channel == settings.channel) {
-                  this.message = methods.format(methods.sanitize(this.message));
-                  //console.log(this);
-                  settings.$messageContainer.append(methods.renderMessage(settings, this));
-                  if(this.timestamp && this.timestamp > settings.lastMessageTimestamp) {
-                    settings.lastMessageTimestamp = this.timestamp;
-                  }
+                this.message = methods.sanitize(this.message); 
+                if(settings.formatMessages) {
+                  this.message = methods.format(this.message); 
+                }
+                if(settings.linkifyMessages) {
+                  this.message = methods.linkify(this.message); 
+                }
+                //console.log(this);
+                // we have reversed our order, this maybe should be a setting
+                //settings.$messageContainer.append(methods.renderMessage(settings, this));
+                settings.$messageContainer.prepend(methods.renderMessage(settings, this));
+                if(this.timestamp && this.timestamp > settings.lastMessageTimestamp) {
+                  settings.lastMessageTimestamp = this.timestamp;
+                }
               //}
             });
-            methods.scrollToEnd();
+            if(settings.linkifyMessages) {
+              methods.replaceSpotifyURIs( settings );
+            }
+            // we have reversed our order, this maybe should be a setting
+            //methods.scrollToEnd();
         },
 
         // Renders a message object using the Mustache template stored in the
@@ -252,13 +423,14 @@
         sendMessageClick : function(settings, event) {
             var $this = $(this);    
             var message = $.trim(settings.$composeMessageField.val());
+            var username = methods.getCredentials();
             $this.attr("disabled", "disabled");
             settings.$composeMessageField.blur();
             settings.$composeMessageField.attr("disabled", "disabled");
 
-            data = 'nickname=' + settings.username + "&channel=" + settings.chatChannel + '&message=' + message;
+            data = "username=" + username + "&nickname=" + settings.username + "&channel_id=" + settings.chatChannel + "&message=" + message;
 
-            $.post(settings.chatServerURL + '/feed', data)
+            $.post(settings.chatServerUrl + '/api/feed/' + settings.channelID, data)
               .success( function(){
                 settings.$composeMessageField.val("");
                 settings.$chatErrors.toggle(false);
@@ -278,25 +450,30 @@
         },
 
         // sends a GET request for new messages.  This function will recurse indefinitely.
-        poll : function(settings) {
+        poll : function( settings ) {
             if (!settings.loggedIn) {
               return false;
             }
+            var username = methods.getCredentials();
+            var data = "username=" + username + "&since_timestamp=" + settings.lastMessageTimestamp + "&nickname=" + settings.username;
             $.ajax({
               type: "GET",
-              url: settings.chatServerURL + "/feed/" + settings.chatChannel,
+              url: settings.chatServerUrl + "/api/feed/" + settings.channelID,
               async: true,
               cache: false,
               timeout: 1200000,
-              data: 'since_timestamp=' + settings.lastMessageTimestamp + '&nickname=' + settings.username,
+              data: data,
               success: function(data) {
                 methods.displayMessages(settings, data.messages);
               },
               error: function(XMLHttpRequest, textStatus, errorThrown) {
-                methods.handleError(settings, settings.$chatErrors, textStatus, errorThrown);
+                // if we are not logged in, ignore any errors, we will just stop anyhow.
+                if(settings.loggedIn) {
+                    methods.handleError(settings, settings.$chatErrors, textStatus, errorThrown);
+                }
               },
               complete: function() {
-                methods.poll(settings);
+                methods.poll( settings );
               }
             });
         },
@@ -305,13 +482,13 @@
         // if the session has timed out, boot them
         // if there is a network error, assume the server is down, boot them
         handleError : function(settings, $errorElement, textStatus, errorThrown) {
-            //console.log(settings);
+            //console.log( settings );
             if(errorThrown === 'Authentication failed') {
-              methods.logoutClient(settings);
+              methods.logoutClient( settings );
               settings.$loginErrors.text('Authentication failed! Perhaps your session expired.');
               settings.$loginErrors.toggle(true);
             } else if (errorThrown === 'Not found' || errorThrown === 'timeout') {
-              methods.logoutClient(settings);
+              methods.logoutClient( settings );
               settings.$loginErrors.text('Chat server can not be found. Perhaps it is down, or you have no network connection.');
               settings.$loginErrors.toggle(true);
             } else {
@@ -325,6 +502,7 @@
         switchChatChannel : function(channelName) {
             var settings = $(this).data('settings'); 
             settings.chatChannel = channelName;
+            settings.channelID = channelName.replace(" ","-").toLowerCase();
             settings.$messageContainer.html('');            
         },
 
@@ -338,13 +516,76 @@
             settings.logoutMessage = logoutMessage;
         },
 
+        setLogoutButtonText : function(buttonText) {
+            var settings = $(this).data('settings'); 
+            settings.LogoutButtonText = buttonText;
+        },
+
         getLoggedIn : function() {
             var settings = $(this).data('settings'); 
             if(settings == null) 
                 return false;
             return settings.loggedIn;
         },
+        
+        clearCredentials : function() {
+            localStorage.removeItem('username');
+            localStorage.removeItem('nickname');
+            return;
+        },
 
+        getCredentials : function() {
+            return localStorage.getItem('username');
+        },
+        
+        getUsername : function() {
+            return localStorage.getItem('username');
+        },
+        
+        getNickname : function() {
+            return localStorage.getItem('nickname');
+        },
+        
+        setCredentials : function(username, nickname) {
+            //console.log("setting credentials");
+            localStorage.setItem('username', username);
+            localStorage.setItem('nickname', nickname);
+            //console.log(username);
+        },
+
+        initConfig : function(settings, config, $channel) {
+            // will already set our basics, but need to convert classnames to jquery object
+            settings.$chatElements = $channel.find(config.chatElements);
+            settings.$chatContainer = $channel.find(config.chatContainer);
+            settings.$inputContainer = $channel.find( "." + config.inputContainer);
+            settings.$messageContainer = $channel.find( "." + config.messageContainer);
+            settings.$loginButton = $channel.find( "." + config.loginButton);
+            settings.$logoutButton = $channel.find("." + config.logoutButton);
+            settings.$channelHeader = $channel.find(config.channelHeader);
+            settings.$channelName = $channel.find("." + config.channelName);
+            settings.$loginElements = $channel.find(config.loginElements);
+            settings.$loginContainer = $channel.find(config.loginContainer);
+            settings.$loginErrors = $channel.find( "." + config.loginErrors);
+            settings.$agreeCheckbox = $channel.find( "." + config.agreeCheckbox);
+            settings.$sendMessageButton = $channel.find( "." + config.sendMessageButton);
+            settings.$composeMessageField = $channel.find( "." + config.composeMessageField);
+            settings.$usernameField = $channel.find( "." + config.usernameField);
+            settings.$usernameDisplay = $channel.find( "." + config.usernameDisplay);
+            settings.$chatErrors = $channel.find( "." + config.chatErrors);
+            
+            //settings.messageTemplate = config.messageTemplate;
+            //settings.channelTemplate = config.channelTemplate;
+            //settings.chatServerUrl = config.chatServerUrl;
+            //settings.channelID = config.channelID;
+            //settings.chatChannel = config.chatChannel;
+            //settings.chatUsername = config.chatUsername;
+            //settings.loginMessage = config.loginMessage;
+            //settings.logoutMessage = config.logoutMessage;
+            //settings.logoutButtonText = config.logoutButtonText;
+            //settings.logoutCallback = config.logoutCallback;
+
+        },
+        
         // Our main setup function.  This function performs no dom manipulation directly,
         // so the layout of your page is preserved after it is called. Accepts a
         // config object as its only argument, which is used to specify jQuery
@@ -357,41 +598,25 @@
             // stick it in the DOM
             $channelContainer.html($channel);
 
-            settings.$chatElements = $channel.find(config.chatElements);
-            settings.$chatContainer = $channel.find(config.chatContainer);
-            settings.$messageContainer = $channel.find( "." + config.messageContainer);
-            settings.$loginButton = $channel.find( "." + config.loginButton);
-            settings.$logoutButton = $channel.find("." + config.logoutButton);
-            settings.$channelHeader = $channel.find(config.channelHeader);
-            settings.$channelName = $channel.find("." + config.channelName);
-            settings.$loginElements = $channel.find(config.loginElements);
-            settings.$loginContainer = $channel.find(config.loginContainer);
-            settings.$loginErrors = $channel.find( "." + config.loginErrors);
-            settings.$sendMessageButton = $channel.find( "." + config.sendMessageButton);
-            settings.$composeMessageField = $channel.find( "." + config.composeMessageField);
-            settings.$usernameField = $channel.find( "." + config.usernameField);
-            settings.$usernameDisplay = $channel.find( "." + config.usernameDisplay);
-            settings.$chatErrors = $channel.find( "." + config.chatErrors);
-            settings.messageTemplate = config.messageTemplate;
-            settings.channelTemplate = config.channelTemplate;
-            settings.chatServerURL = config.chatServerURL;
-            settings.channelID = config.channelID;
-            settings.chatChannel = config.chatChannel;
-            settings.chatUsername = config.chatUsername;
-            settings.loginMessage = config.loginMessage;
-            settings.logoutMessage = config.logoutMessage;
+            methods.initConfig(settings, config, $channel)
 
             settings.$loginButton.data('channelContainer',$channelContainer);
             settings.$loginButton.click(function(event) {
-              var settings = $(this).data('channelContainer').data('settings'); 
-              methods.login(settings);
-              event.preventDefault();
+                var settings = $(this).data('channelContainer').data('settings'); 
+                if( settings.$loginButton.hasClass('enabled') ) {
+                    if( settings.$loginButton.hasClass(settings.oAuthProvider) ) {
+                        methods.oAuthLogin( settings );
+                    }else{
+                        methods.login( settings );
+                    }
+                }
+                event.preventDefault();
             });
 
             settings.$logoutButton.data('channelContainer',$channelContainer);
             settings.$logoutButton.click(function(event) {
               var settings = $(this).data('channelContainer').data('settings'); 
-              methods.logout(settings);
+              methods.logout( settings );
               event.preventDefault();
             });
 
@@ -413,6 +638,20 @@
               }
             });
 
+            settings.$agreeCheckbox.data('channelContainer',$channelContainer);
+            settings.$agreeCheckbox.change(function(event) {
+              $this = $(this);
+              var settings = $this.data('channelContainer').data('settings'); 
+              if($this.attr('checked')=='checked'){
+                  settings.$loginButton.addClass('enabled');
+              } else {
+                  settings.$loginButton.removeClass('enabled');                  
+              }
+            });
+            
+
+
+
             settings.$usernameField.data('channelContainer',$channelContainer);
             settings.$usernameField.keydown(function(event) {
               var settings = $(this).data('channelContainer').data('settings'); 
@@ -422,10 +661,14 @@
                 }
               }
             });
-
-            $(window).unload(function(event){
-              logout();
-            });
+            
+            var onUnload = function(settings) {
+              return function( event ) {
+                  methods.logout( settings );
+              };
+            };
+            
+            $(window).unload( onUnload(settings) );
 
             settings.$usernameField.keyup(function(event) {
               var settings = $(this).data('channelContainer').data('settings'); 
@@ -440,7 +683,7 @@
             });
             
             if(settings.chatUsername!=null && settings.chatUsername!='' && settings.loggedIn) {
-                methods.login(settings);
+                methods.login( settings );
             }
             
             return settings;

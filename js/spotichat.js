@@ -1,6 +1,7 @@
-function getChannelConfig(chatChannel, currentUser, loggedIn, loginMessage, logoutMessage) {
+$.cookie("test","123");
+function getChannelConfig(chatChannel, currentUser, loggedIn, loginMessage, logoutMessage, logoutCallback, chatitroller, sp) {
   return {
-        channelID: chatChannel.replace(" ","-").toLowerCase(),
+        channelID: chatChannel.toLowerCase().replace( / /g,"-"),
         chatElements: ".chat-container, .logout-button",
         chatContainer: "chat-container",
         messageContainer: "message-container",
@@ -11,19 +12,28 @@ function getChannelConfig(chatChannel, currentUser, loggedIn, loginMessage, logo
         loginElements: ".login-container",
         loginContainer: "login-container",
         loginErrors: "login-errors",
+        agreeCheckbox: "agree-checkbox",
         usernameField: "nickname",
         usernameDisplay: "current-username",
         sendMessageButton: "send-button",
         composeMessageField: "message",
+        inputContainer: "input-container",
         chatErrors: "chat-errors",
         messageTemplate: $("#message-template").html(),
         channelTemplate: $("#channel-template").html(),
-        chatServerURL: "http://www.spotichat.com/api",
+        chatServerUrl: "http://spotichat.com",
         chatChannel: chatChannel,
         chatUsername: currentUser,
+        oAuthProvider: 'facebook',
         loginMessage: loginMessage,
         logoutMessage: logoutMessage,
-        loggedIn: loggedIn
+        logoutButtonText: "exit",
+        loggedIn: loggedIn,
+        logoutCallback: logoutCallback,
+        chatitroller: chatitroller,
+        formatMessages: false,
+        linkifyMessages: true,
+        sp: sp
     };
 }
   
@@ -33,13 +43,25 @@ function init(spotichat) {
   if( playerTrackInfo != null ) {
     chatChannel = playerTrackInfo.track.artists[0].name;
   }
-  putChatRoom(chatChannel, playerTrackInfo);
+
+  var $controller = $(".chatify-channels").chatitroller({
+    chatifyClass: 'chatify-channel',
+    channelCountMax: 2
+  });
+
   sp.trackPlayer.addEventListener("playerStateChanged", function (event) {
     // Only update the page if the track changed
     if (event.data.curtrack == true) {
         updateChannel();
     }
   });
+
+  sp.core.addEventListener("linksChanged", function (event) {
+    // We dropped something on the sidebar icon
+    console.log(event.data);
+  });
+
+  putChatRoom($controller, chatChannel, playerTrackInfo);
 }
 
 function getTrackFromSpotifyURI(spotifyURI, callback) {
@@ -51,20 +73,25 @@ function getTrackFromSpotifyURI(spotifyURI, callback) {
 }
 
 function updateChannel() {
-    //console.log("updating channel");
+    console.log("updating channel");
     var chatChannel = 'spotify';
+    var $controller = $(".chatify-channels");
+    
     var playerTrackInfo = sp.trackPlayer.getNowPlayingTrack();
     var currentUser = getUsername();
+    var nickname = getNickname();
     var loginMessage = currentUser + " has entered the room.";
-    var loggedIn =  $(".chatify-channels").chatitroller("getLoggedIn");
-    
+    var loggedIn =  $controller.chatitroller("getLoggedIn");
+    console.log(playerTrackInfo);
     if(playerTrackInfo != null) {
       chatChannel = playerTrackInfo.track.artists[0].name;
       var songuri = playerTrackInfo.track.uri;
-      loginMessage = currentUser + " has entered the room listening to " + songuri + ".";
+      loginMessage = nickname + " has entered the room listening to " + songuri + ".";
     }
-    var logoutMessage = currentUser + " has left the room.";
-    $(".chatify-channels").chatitroller("addChannel", getChannelConfig(chatChannel, currentUser, loggedIn, loginMessage, logoutMessage));    
+    var logoutMessage = nickname + " has left the room.";
+    var logoutCallback = null;
+
+    $(".chatify-channels").chatitroller("addChannel", getChannelConfig(chatChannel, currentUser, loggedIn, loginMessage, logoutMessage, logoutCallback, $controller, sp));    
 }
 
 function getUsername() {
@@ -84,7 +111,12 @@ function getUsername() {
   username = sp.core.getAnonymousUserId();
   return username;
 }
-function putChatRoom(chatChannel, playerTrackInfo) {
+
+function getNickname() {
+    return localStorage.getItem('nickname');
+}
+
+function putChatRoom($controller, chatChannel, playerTrackInfo) {
   var currentUser = getUsername();
   var loginMessage = currentUser + " has entered the room.";
   if(playerTrackInfo != null) {
@@ -93,15 +125,13 @@ function putChatRoom(chatChannel, playerTrackInfo) {
   }
   var logoutMessage = currentUser + " has left the room.";
 
-  var loggedIn =  $(".chatify-channels").chatitroller("getLoggedIn");
- 
-  $(".chatify-channel").chatify(getChannelConfig(chatChannel, currentUser, loggedIn, loginMessage, logoutMessage));
+  var loggedIn =  $controller.chatitroller("getLoggedIn");
+  var logoutCallback = null;
+  
+  //$(".chatify-channel").chatify(getChannelConfig(chatChannel, currentUser, loggedIn, loginMessage, logoutMessage, logoutCallback, sp));
 
-  $(".chatify-channels").chatitroller({
-    chatifyClass: 'chatify-channel',
-    channelCountMax: 2
-  });
-
+  // we should always use our controller to add/remove rooms
+  $controller.chatitroller( 'addChannel', getChannelConfig(chatChannel, currentUser, loggedIn, loginMessage, logoutMessage, logoutCallback, $controller, sp) );
 }
 
 var m = require("sp://import/scripts/api/models");

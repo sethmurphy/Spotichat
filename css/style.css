@@ -3,17 +3,17 @@ body {
     margin: 0;
 }
 h1 {
- padding: 0 0 0 .425em;
- margin: 0;
- display: inline;
- float: left;
- color: #FEFEFE;
+    padding: 0 0 0 .425em;
+    margin: 0;
+    display: inline;
+    float: left;
+    color: #FEFEFE;
 }
 .chatify-channel {
     width: 50%;
     float: left;
 }
-#header { 
+#header {
     position: fixed;
     top: 0;
     padding: 4px;
@@ -22,18 +22,27 @@ h1 {
     min-width: 600px;
     background-color: #7AB800;
 }
+
 h1 .subtitle {
- color: #FEFEFE;
- padding-left: 1em;
- text-shadow: 0 1px 0 rgba(0, 0, 0, .77); 
+    color: #FEFEFE;
+    padding-left: 1em;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, .77); 
 }
 #content {
     margin-top: 48px;
 }
+.login-container {
+    margin: 1em 1em 1em 1em;
+}
 .intro {
-    width: 20em;
     line-height: 1.5em;
-    margin: 4em 1em 1em 1em;
+    text-align: justify;
+}
+.agree {
+    padding: 2em;
+    text-align: justify;
+    background-color: #efefef;
+    margin-top: 2em;
 }
 .login-form {
     font-size: 14pt;
@@ -50,8 +59,6 @@ h1 .subtitle {
 
 .footer {
     font-size: 14pt;
-    position: fixed;
-    bottom: 0;
     width: 100%;
     margin: 0;
     padding: 0;
@@ -60,12 +67,6 @@ h1 .subtitle {
     background-color: inheret;
 }
 
-.intro {
-    margin: 4em 1em 1em 1em;
-    line-height: 1.5em;
-    text-align: justify;
-    width: 40em;
-}
 .whoareyou, .nickname, .login
 {
     margin: .5em;
@@ -77,30 +78,19 @@ h1 .subtitle {
     font-size: 1.5em;
 }
 
-.agree {
-    width: 40em;
-    border: 2px solid;
-    border-radius: 3px;
-    padding: 1em;
-    margin: 1em;
-    line-height: 1.5em;
-    height: 2.5em;
-}
 .login-button {
-    width: auto;
-    float: right;
-    line-height: 1.5em;
+    margin: 1em 0;
 }
 
 .logout-button {
-  float: right;
-  margin-right: 20px;
+    float: right;
+    margin-right: 20px;
 }
 .logout-button:link {
-  text-decoration: none;
+    text-decoration: none;
 }
 .logout-button:hover {
-  text-decoration: underline;
+    text-decoration: underline;
 }
 .logout-button:visited {
 }
@@ -142,7 +132,9 @@ h1 .subtitle {
     text-shadow: none;
     font-weight: bold;      
 }
-
+.agree-checkbox {
+    -webkit-appearance: checkbox;
+}
 .input_box { background: border: 1px #ccc solid; padding: 10px; width: 100%;}
 
 /*------------------------------------------------------------------------------
@@ -154,36 +146,57 @@ h1 .subtitle {
     padding: 0 0 6em 0;
     overflow: hidden;
 }
-
+.message-container span.clear {
+    clear: both;
+    display: block;
+    float: none;
+}
 .message-container li {
-  clear: both;
-  list-style: none;
+    clear: both;
+    list-style: none;
+    margin: 2.5%;
+    padding: 2.5%;
+    background: #FEFEFE;
+    border-radius: 8px;
 }
 .message-container li.system {
-  color: #666666;
+    color: #666666;
 }
 .message-container li.user {
-  color: #333333;
+    color: #333333;
 }
 .message-container li.error {
-  color: #FF0000;
+    color: #FF0000;
 }
 
 .message-container span {
-  padding: 2px .5%;
-  display: block;
-  float: left;
+    display: block;
+    float: left;
 }
 .message-container .message-username {
-  font-weight: bold;
-  width: 10%;
-  text-align: right
+    font-weight: bold;
+    width: 90%;
+    text-align: left
 }
 .message-container .message-body {
-    width: 77%;
+    width: 90%;
+    text-align: left;
 }
 .message-container .message-timestamp {
-  width: 8%;
-  color: #c7c7c7;
-  text-align: center;
+    width: 90%;
+    color: #c7c7c7;
+    text-align: right;
+}
+/* Our oAuth buttons */
+.login.facebook {
+  border: none;
+  width: 162px;
+  height: 29px;
+  display: block;
+  background: url(/images/facebook_signin.png) top left;
+}
+
+.login.facebook.enabled {
+  background: url(/images/facebook_signin.png) bottom left;
+  cursor: pointer;
 }

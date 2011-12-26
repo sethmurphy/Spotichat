@@ -13,6 +13,10 @@
         "en"
     ],
     "RequiredPermissions": [
-        "http://www.spotichat.com"
-    ]
+        "http://spotichat.com"
+    ],
+    "AcceptedLinkTypes": [
+        "artist",
+        "track"
+    ],
 }
