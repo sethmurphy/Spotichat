@@ -10,6 +10,7 @@
     <script src="/js/jquery.chatify.js"></script>
     <script src="/js/jquery.chatitroller.js"></script>
     <script src="/js/mustache.js"></script>
+    <script src="/js/sha1.js"></script>
     <!-- chat item template -->
     <script id="message-template" type="text/plain">
       <li class="{{msgtype}}">
@@ -74,7 +75,7 @@
     </div>
     </script>
 </head>
-<body onload="sp = getSpotifyApi(1); spotichat = sp.require('js/spotichat'); spotichat.init(spotichat);">
+<body onload="sp = getSpotifyApi(1); spotichat = sp.require('js/spotichat');">
     <div id="header">
         <h1>SpotiChat<span class="subtitle">chat where you listen</span></h1>
     </div>
