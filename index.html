@@ -34,25 +34,15 @@
             No one listening to the same thing? See what they said about the song while they were there.
             </p>
             <div class="agree">
-                <form>
-                    <table>
-                        <tr>
-                            <td valign="top">
-                                <input type="checkbox" name="{{agreeCheckbox}}" value="agree" id="{{agreeCheckbox}}-{{channelID}}" class="{{agreeCheckbox}}"/>
-                            </td>
-                            <td valign="top">
-                                <label class="label-{{agreeCheckbox}}" id="label-{{agreeCheckbox}}-{{channelID}}" for="{{agreeCheckbox}}">SpotiChat will retain your chats identified by your Spotify username and they will be available to view by anyone on the Spotify platform.</span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                            </td>
-                            <td>
-                                <button type="submit" class="login {{oAuthProvider}} {{loginButton}}" id="{{loginButton}}-{{channelID}}" ></button>
-                            </td>
-                        </tr>
-                    </table>
-                </form>
+                <p>SpotiChat will retain your chats identified by your Spotify username and they will be available to view by anyone on the Spotify platform.</p>
+                <input type="checkbox" name="{{agreeCheckbox}}" value="agree" id="{{agreeCheckbox}}-{{channelID}}" class="{{agreeCheckbox}}"/>
+                <label class="label-{{agreeCheckbox}}" id="label-{{agreeCheckbox}}-{{channelID}}" for="{{agreeCheckbox}}">I understand and agree.</label>
+            </div>
+            <div class="login">
+                {{#oAuthProviders}}
+                <button type="submit" class="login oauth-provider {{loginButton}} {{name}}" id="{{loginButton}}-{{channelID}}-{{name}}" value="{{name}}"></button>
+                {{/oAuthProviders}}
+                <div style="clear: both;"></div>
             </div>
             <span class="errors {{loginErrors}}" style="display: none;"></span>
             <div style="clear: both;"></div>

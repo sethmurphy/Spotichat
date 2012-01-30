@@ -38,18 +38,19 @@ h1 .subtitle {
     line-height: 1.5em;
     text-align: justify;
 }
-.agree {
+div.agree {
     padding: 2em;
     text-align: justify;
     background-color: #efefef;
     margin-top: 2em;
+    margin-bottom: 2em;
 }
-.login-form {
-    font-size: 14pt;
-    width: 100%;
-    padding: 0;
-    margin: 0;
+div.login {
+    background-color: #efefef;
+    padding: 2em;
+    margin-bottom: 2em;
 }
+
 .send-form {
     font-size: 14pt;
     width: 100%;
@@ -67,7 +68,7 @@ h1 .subtitle {
     background-color: inheret;
 }
 
-.whoareyou, .nickname, .login
+.whoareyou, .nickname
 {
     margin: .5em;
     padding: .5em;
@@ -76,10 +77,6 @@ h1 .subtitle {
 .whoareyou {
     width: auto;
     font-size: 1.5em;
-}
-
-.login-button {
-    margin: 1em 0;
 }
 
 .logout-button {
@@ -131,6 +128,9 @@ h1 .subtitle {
     display: block;
     text-shadow: none;
     font-weight: bold;      
+}
+div.agree p {
+    margin-bottom: 1em;
 }
 .agree-checkbox {
     -webkit-appearance: checkbox;
@@ -188,15 +188,29 @@ h1 .subtitle {
     text-align: right;
 }
 /* Our oAuth buttons */
-.login.facebook {
+button.login {
   border: none;
   width: 162px;
   height: 29px;
   display: block;
-  background: url(/images/facebook_signin.png) top left;
+  margin: 2px;
+  float: left;
+  clear: left;
+  background-position: top left;
+}
+div.login-container.enabled button.login {
+  background-position: bottom left;
+  cursor: pointer;
 }
 
-.login.facebook.enabled {
-  background: url(/images/facebook_signin.png) bottom left;
-  cursor: pointer;
+button.login.facebook {
+  background-image: url(/images/facebook_signin.png);
+}
+
+button.login.twitter {
+  background-image: url(/images/twitter_signin.png);
+}
+
+button.login.tumblr {
+  background-image: url(/images/tumblr_signin.png);
 }
